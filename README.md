@@ -21,7 +21,7 @@ There are all information how to fast start the bot, aboute bot, feature plans t
 ```CHANNEL_DEV_ID```=''(ID of channel in Discord for developer's changelog(contain targeted to developer information aboute Pull Request)) \
 ```CHANNEL_CL_ID```=''(ID of channel in Discord for public viewers) \
 ```GUILD_ID```='' (ID of guild where will sending CL)\
-(all in '' must be string)\
+(all in '' must be string)
 
 9. Double click on ```run.bat``` (need to be installed from your side python 3.14.3 or younger)
 
