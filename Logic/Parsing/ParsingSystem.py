@@ -1,93 +1,124 @@
 import aiohttp
-from bs4 import BeautifulSoup as bs
-from bs4.element import Tag, ResultSet
 import discord
 import requests
 import asyncio
 import os
 import logging
+import re
+from github import Github
 from dotenv import load_dotenv, set_key
 from Logic.DS import MessageMenager as ds
 from Logic import logging as log
-import time
-from fake_useragent import UserAgent
 from pathlib import Path
 from Logic.DB import parsDB as db
 
 logger=logging.getLogger(__name__)
-HEADERS={"User-Agent":UserAgent().random}
 env_path = Path(__file__).resolve().parents[2] / "Storage" / ".env"
+load_dotenv(env_path)
 
 async def parsPR(bot: discord.Client):
     log.config_log(level=logging.INFO)
-    async with aiohttp.ClientSession() as session:
-        load_dotenv(env_path, override=True)
-        number_pr = int(os.getenv("NUMBER_OF_PR"))
-        url = os.getenv("REPO_URL")
-        if (bool(os.getenv("IS_PARS"))):
-            pullURL=f"{url}/pull/{number_pr}"
-            logger.info(f"Processing {pullURL}")
-            async with session.get(pullURL, headers=HEADERS) as reqPull:
-                if reqPull.status!=200:
-                    return
-                tree = await reqPull.text()
-                soup = bs(tree, 'lxml')
-                namePR=soup.find('span', {'class':'Text__StyledText-sc-1klmep6-0 f1 text-normal markdown-title prc-Text-Text-9mHv3'})
-                author=soup.find('div',{'class':'d-flex flex-items-center flex-wrap gap-1'}).find('strong').find('a')
-                descriptionOfPR= soup.find('div', {'class':'comment-body markdown-body js-comment-body soft-wrap user-select-contain d-block'})
-                ulInDescr=descriptionOfPR.find('ul', {'dir':'auto'})
-                aboutePR=descriptionOfPR.find_all('p', {'dir':'auto'})
-                if (ulInDescr!=None):
-                    changelogOfPR= ulInDescr.find('li')
-                else:
-                    changelogOfPR=""
-                status=soup.find('span',{"class":"prc-StateLabel-StateLabel-Iawzp flex-self-start"}).text
-                if (status=='Closed' or status=='Merged' or status=='Draft'):
-                    boolenStatus=True
-                elif(status=='Open'):
-                    boolenStatus=False
-                name,descr,changelog=await checkAndSolve([namePR,aboutePR,changelogOfPR])
-                id = await ds.createEmded(name,author.text,descr,changelog, pullURL,status, bot)
-                await db.addToDBPR(number_pr,boolenStatus,id)
+    load_dotenv(env_path, override=True)
+    g=Github(os.getenv("GIT_TOKEN"))
+    repo=g.get_repo(os.getenv("REPO_PATH"))
+    pullrequest=repo.get_pull(int(os.getenv("NUMBER_OF_PR")))
+    title=pullrequest.title
+    author=pullrequest.user.login
+    isMerged=pullrequest.merged
+    status=pullrequest.state
+    descr=pullrequest.body
+    repackedDescr=await repackText(descr)
 
-                number_pr += 1
+    statusToDS=''
+    match(isMerged):
+        case True:
+            statusToDS='Merged'
+        case False:
+            if status=='closed':
+                statusToDS='Closed'
+            elif status=='open':
+                statusToDS='Open'
+    boolenIsClosed=False
+    match (status):
+        case 'closed':
+            boolenIsClosed = True
+        case 'open':
+            boolenIsClosed = False
+    print(repackedDescr)
+    if "Чейнджлог" not in repackedDescr:
+        repackedDescr.update({'Чейнджлог':'Чейнджлог отсутствует'})
+        logger.warning("Changelog is missing")
+    if "Описание PR" not in repackedDescr:
+        repackedDescr.update({'Описание PR':'Описание отсутствует'})
+        logger.warning("Description is missing")
+    if "Почему / Баланс" not in repackedDescr:
+        repackedDescr.update({'Почему / Баланс':'Описание причины добавления отсутствует'})
+        logger.warning("Why/Balance is missing")
+    url=f'https://github.com/{os.getenv("REPO_PATH")}/pull/{int(os.getenv("NUMBER_OF_PR"))}'
+    id = await ds.createEmded(title,author,statusToDS,repackedDescr['Описание PR'],repackedDescr['Почему / Баланс'], repackedDescr['Чейнджлог'],url, bot )
+    await db.addPR(int(os.getenv("NUMBER_OF_PR")),repackedDescr,id,boolenIsClosed, isMerged)
+    set_key(env_path,'NUMBER_OF_PR', str(int(os.getenv("NUMBER_OF_PR"))+1))
+    
 
-                set_key(env_path, 'NUMBER_OF_PR', str(number_pr))
 
-async def parsComments(bot: discord.Client):
+async def repackText(text:str):
     log.config_log(level=logging.INFO)
-    async with aiohttp.ClientSession() as session:
-        dictionary=await db.findNotClosed()
-        for id,thread in dictionary.items():
-            async with session.get(f"https://api.github.com/repos/SS14EchoProtocol/Echo-Protocol-SS14/issues/{id}/comments", headers=HEADERS) as commJSON:
-                data=await commJSON.json()
-                if isinstance(data, dict):
-                    if data.get("message") == "Not Found" or data.get("message")== "API rate limit exceeded for 194.12.74.5. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)":
-                        continue
-                for comment in data:
-                    author = comment["user"]["login"]
-                    content= comment["body"]
-                    idComm= comment["id"]
-                    if author != "github-actions[bot]":
-                        if(await db.isPostedComment(idComm)):
-                            await ds.sendToBranch(author,content,thread, bot)
-                            await db.addToDBComm(idComm)
-                        else:
-                            continue
+    repacked_text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
 
-async def checkAndSolve(blocklist: list):
-    listOfTexts=[]
-    for i in blocklist:
-        match i:
-            case Tag():
-                listOfTexts.append(i.text)
-            
-            case ResultSet():
-                listOfTexts.append("\n".join(tag.text for tag in i))
+    repacked_text = re.sub(r"# ❗❗.*", "", repacked_text)
+    repacked_text = re.sub(r"\r.*","",repacked_text)
+    repacked_text = re.sub(r"add:","🆕",repacked_text)
+    repacked_text = re.sub(r"tweak:","🔧",repacked_text)
+    repacked_text = re.sub(r"fix:","🐛",repacked_text)
+    repacked_text = re.sub(r"remove:","🛑",repacked_text)
+    repacked_text = re.sub(r"^\s*- \[[x ]\].*$", "", repacked_text, flags=re.MULTILINE)
+    repacked_text = re.sub(r"\n{3,}", "\n\n", repacked_text)
+    repacked_text = re.sub(r'<img[^>]*src="([^"]+)"[^>]*>',r'\1',repacked_text)
+    sections = re.split(r"\n(?=## )", repacked_text.strip())
+    
+    result = {}
+    for section in sections:
+        lines = section.split('\n', 1)
+        if len(lines) > 1:
+            title = lines[0].replace('##', '').strip()
+            content = lines[1].strip()
+            if content:
+                result[title] = content
+    logger.info("Repacking ended!")
+    return result
 
-            case None:
-                listOfTexts.append("")
+async def parsComments(bot:discord.Client):
+    log.config_log(level=logging.INFO)
+    dictOfNotClosed=await db.findNotClosed()
+    for id,thread in dictOfNotClosed.items():
+        g=Github(os.getenv("GIT_TOKEN"))
+        repo=g.get_repo(os.getenv("REPO_PATH"))
+        pullrequest=repo.get_pull(id)
+        comments=pullrequest.get_comments()
+        for i in comments:
+            idComm=i.id
+            if (await db.isPostedComm(idComm)):
+                continue
+            author=i.user.login
+            body=i.body
+            time=i.created_at
+            await db.addComment(idComm)
+            await ds.sendToBranch(author,body,thread,time,bot)
+            logger.info(f"Sended to branch with ID{thread} comment with ID:{idComm}!")
 
-            case _:
-                listOfTexts.append(str(i))
-    return tuple(listOfTexts)
+async def checkUpMerged(bot:discord.Client):
+    dictOfNotMerged=await db.findNotMerged()
+    for id,thread in dictOfNotMerged.items():
+        g=Github(os.getenv("GIT_TOKEN"))
+        repo=g.get_repo(os.getenv("REPO_PATH"))
+        pullrequest=repo.get_pull(id)  
+        isMerged=pullrequest.merged
+        if(isMerged):
+            await db.makeMerged(id)
+            body=await db.getBody(id)
+
+            changelog=body['Чейнджлог']
+            await ds.sendToPublicChangelog(changelog,bot)
+            logger.info(f"Sended to public CL with ID{id}")
+        else:
+            continue

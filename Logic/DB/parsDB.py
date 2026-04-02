@@ -1,91 +1,113 @@
-import sqlite3 as sq 
 import asyncio
-import aiosqlite
+from typing import Any
+from sqlalchemy import JSON
+from sqlalchemy import select,update,delete,func
+from sqlalchemy.orm import Mapped,DeclarativeBase,mapped_column
+from sqlalchemy.ext.asyncio import AsyncAttrs,async_sessionmaker,create_async_engine
 from pathlib import Path
 import logging
 from Logic import logging as log
 
 
 logger=logging.getLogger(__name__)
-pr_db_path = Path(__file__).resolve().parents[2] / "Storage" / "pullrequests.db"
+engine=create_async_engine(url='sqlite+aiosqlite:///Storage/db.sqlite3', echo=True)
+async_session=async_sessionmaker(bind=engine,expire_on_commit=False)
 
-comm_db_path = Path(__file__).resolve().parents[2] / "Storage" / "comments.db"
+class Base(AsyncAttrs,DeclarativeBase):
+    type_annotation_map = {
+        dict[str, str]: JSON,
+        dict: JSON 
+    }
 
-async def Init():
-    log.config_log(level=logging.INFO)
-    async with aiosqlite.connect(pr_db_path) as db:
-        curs= await db.cursor()
-        initCommandPRs="""
-        CREATE TABLE IF NOT EXISTS pullrequests(
-            idPR INTEGER NOT NULL,
-            isClosed BOOLEAN DEFAULT FALSE,
-            idDSThread INTEGER
-        );
-        """
-        await curs.execute(initCommandPRs)
-        await db.commit()
-        await db.close()
+class PR(Base):
+    __tablename__= 'PRs'
+    id:Mapped[int] = mapped_column(primary_key=True)
+    threadId:Mapped[int] = mapped_column(primary_key=True)
+    info:Mapped[dict[str, str]] = mapped_column()
+    isClosed:Mapped[bool]
+    isMerged:Mapped[bool]
 
-    async with aiosqlite.connect(comm_db_path) as dbcomm:
-        CommCurs= await dbcomm.cursor()
-        initCommandComments="""
-        CREATE TABLE IF NOT EXISTS comments(
-            idComment INTEGER
-        );
-        """
-        await CommCurs.execute(initCommandComments)
-        await dbcomm.commit()
-        await dbcomm.close()
-    logger.info("Initializing of DB ended")
+class Comment(Base):
+    __tablename__= 'Comments'
+    id:Mapped[int] = mapped_column(primary_key=True)
 
-async def addToDBPR(idPR:int,isClosed:bool,DSThread:int):
-    log.config_log(level=logging.INFO)
-    async with aiosqlite.connect(pr_db_path) as db:
-        await db.execute("""
-        INSERT INTO pullrequests(idPR,isClosed,idDSThread)
-        VALUES (?,?,?);
-                        """,(idPR,isClosed,DSThread)
-                         )
-        await db.commit()
-        await db.close()
-        logger.info(f"id:{idPR}, is closed:{isClosed}, DS Thread:{DSThread} was added to DB")
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-async def addToDBComm(idComm:int):
-    log.config_log(level=logging.INFO)
-    async with aiosqlite.connect(comm_db_path) as db:
-        await db.execute("""
-        INSERT INTO comments(idComment)
-        VALUES (?);
-                        """,(idComm,)
-                         )
-        await db.commit()
-        await db.close()
-        logger.info(f"{idComm} comment was added to DB")
 
-async def findNotClosed()->dict:
-    log.config_log(level=logging.INFO)
-    logger.info("Start finding not closed")
-    dictToReturn={} # id of message and url to pr
-    async with aiosqlite.connect(pr_db_path) as db:
-        async with db.execute(f"""SELECT * FROM pullrequests WHERE isClosed = false;""") as cursor:
-            async for rows in cursor:
-                message=rows[2]
-                id=rows[0]
-                dictToReturn.update({id:message})
-    await db.close()
-    logger.info("Ended finding not closed PR's")
-    return dictToReturn
 
-async def isPostedComment(id:int)->bool:
-    log.config_log(level=logging.INFO)
-    logger.info(f"Check comment with ID{id}")
-    async with aiosqlite.connect(comm_db_path) as db:
-        async with db.execute(f"""SELECT * FROM comments WHERE idComment = ?;""",(id,)) as cursor:
-            res=await cursor.fetchone()
-            if (res==None):
-                logger.info("Comment not posted")
-                return True
-            else:
-                logger.warning("Comment is already posted!")
-                return False
 
+async def addPR(id:int,info:dict,threadId:int,isClosed:bool,isMerged:bool):
+    async with async_session() as s:
+        pr= await s.scalar(select(PR).where(PR.id==id))
+        if pr:
+            return
+        else:
+            new_pr=PR(id=id,info=info,threadId=threadId,isClosed=isClosed,isMerged=isMerged)
+            s.add(new_pr)
+            await s.commit()
+            await s.refresh(new_pr)
+            logger.info(f"Added new PR to DB!")
+            return(new_pr)
+        
+async def addComment(id:int):
+    async with async_session() as s:
+        comm= await s.scalar(select(Comment).where(Comment.id==id))
+        if comm:
+            return
+        else:
+            new_comm=PR(id=id)
+            s.add(new_comm)
+            await s.commit()
+            await s.refresh(new_comm)
+            logger.info(f"Added new comment to DB!")
+            return(new_comm)
+
+
+async def isPostedComm(id:int):
+    async with async_session() as s:
+        comm= await s.scalar(select(Comment).where(Comment.id==id))
+        if comm:
+            logger.info(f"Comment with ID:{id} is already posted!")
+            return True
+        else:
+            logger.info(f"Comment with ID:{id} newer posted!")
+            return False
+
+async def findNotClosed()->list:
+    dictToReturn={}
+    async with async_session() as s:
+        pr= await s.scalars(select(PR).where(PR.isClosed==False))
+        if pr:
+            for row in pr:
+                id=row.id
+                thread=row.threadId
+                dictToReturn.update({id:thread})
+        return dictToReturn
+    
+async def findNotMerged()->list:
+    dictToReturn={}
+    async with async_session() as s:
+        pr= await s.scalars(select(PR).where(PR.isMerged==False))
+        if pr:
+            for row in pr:
+                id=row.id
+                thread=row.threadId
+                dictToReturn.update({id:thread})
+            return dictToReturn
+        else:
+            logger.warning("Not merged PR's was not found!")
+            
+        
+async def makeMerged(id:int):
+    async with async_session() as s:
+        pr= await s.scalar(update(PR).where(PR.id==id).values(isMerged=True))
+        await s.commit()
+        logger.info(f"PR with ID:{id} made merged!")
+
+async def getBody(id:int):
+    async with async_session() as s:
+        pr= await s.scalar(select(PR).where(PR.id==id))
+        logger.info(f"Collected body of PR with ID:{id}")
+        return pr.PR.info

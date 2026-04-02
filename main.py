@@ -25,7 +25,7 @@ bot = discord.Client(intents=intents)
 async def on_ready():
     log.config_log(level=logging.INFO)
     logger.info(f"We have logged in as {bot.user}")
-    await db.Init()
+    await db.init_db()
     parsPR.start()
     parsComm.start()
 
@@ -41,5 +41,11 @@ async def parsComm():
     log.config_log(level=logging.INFO)
     logger.info('Start parsing comments')
     await pars.parsComments(bot)
+
+@tasks.loop(seconds=30)
+async def checkUpMerged():
+    log.config_log(level=logging.INFO)
+    logger.info("Checking up merger pr's")
+    await checkUpMerged(bot)
 
 bot.run(token)
