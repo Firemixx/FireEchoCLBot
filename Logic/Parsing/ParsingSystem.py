@@ -22,43 +22,42 @@ async def parsPR(bot: discord.Client):
     g=Github(os.getenv("GIT_TOKEN"))
     repo=g.get_repo(os.getenv("REPO_PATH"))
     pullrequest=repo.get_pull(int(os.getenv("NUMBER_OF_PR")))
-    if pullrequest.message!='Not Found':
-        title=pullrequest.title
-        author=pullrequest.user.login
-        isMerged=pullrequest.merged
-        status=pullrequest.state
-        descr=pullrequest.body
-        repackedDescr=await repackText(descr)
+    title=pullrequest.title
+    author=pullrequest.user.login
+    isMerged=pullrequest.merged
+    status=pullrequest.state
+    descr=pullrequest.body
+    repackedDescr=await repackText(descr)
 
-        statusToDS=''
-        match(isMerged):
-            case True:
-                statusToDS='Merged'
-            case False:
-                if status=='closed':
-                    statusToDS='Closed'
-                elif status=='open':
-                    statusToDS='Open'
-        boolenIsClosed=False
-        match (status):
-            case 'closed':
-                boolenIsClosed = True
-            case 'open':
-                boolenIsClosed = False
-        print(repackedDescr)
-        if "Чейнджлог" not in repackedDescr:
-            repackedDescr.update({'Чейнджлог':'Чейнджлог отсутствует'})
-            logger.warning("Changelog is missing")
-        if "Описание PR" not in repackedDescr:
-            repackedDescr.update({'Описание PR':'Описание отсутствует'})
-            logger.warning("Description is missing")
-        if "Почему / Баланс" not in repackedDescr:
-            repackedDescr.update({'Почему / Баланс':'Описание причины добавления отсутствует'})
-            logger.warning("Why/Balance is missing")
-        url=f'https://github.com/{os.getenv("REPO_PATH")}/pull/{int(os.getenv("NUMBER_OF_PR"))}'
-        id = await ds.createEmded(title,author,statusToDS,repackedDescr['Описание PR'],repackedDescr['Почему / Баланс'], repackedDescr['Чейнджлог'],url, bot )
-        await db.addPR(int(os.getenv("NUMBER_OF_PR")),repackedDescr,id,boolenIsClosed, isMerged)
-        set_key(env_path,'NUMBER_OF_PR', str(int(os.getenv("NUMBER_OF_PR"))+1))
+    statusToDS=''
+    match(isMerged):
+        case True:
+            statusToDS='Merged'
+        case False:
+            if status=='closed':
+                statusToDS='Closed'
+            elif status=='open':
+                statusToDS='Open'
+    boolenIsClosed=False
+    match (status):
+        case 'closed':
+            boolenIsClosed = True
+        case 'open':
+            boolenIsClosed = False
+    print(repackedDescr)
+    if "Чейнджлог" not in repackedDescr:
+        repackedDescr.update({'Чейнджлог':'Чейнджлог отсутствует'})
+        logger.warning("Changelog is missing")
+    if "Описание PR" not in repackedDescr:
+        repackedDescr.update({'Описание PR':'Описание отсутствует'})
+        logger.warning("Description is missing")
+    if "Почему / Баланс" not in repackedDescr:
+        repackedDescr.update({'Почему / Баланс':'Описание причины добавления отсутствует'})
+        logger.warning("Why/Balance is missing")
+    url=f'https://github.com/{os.getenv("REPO_PATH")}/pull/{int(os.getenv("NUMBER_OF_PR"))}'
+    id = await ds.createEmded(title,author,statusToDS,repackedDescr['Описание PR'],repackedDescr['Почему / Баланс'], repackedDescr['Чейнджлог'],url, bot )
+    await db.addPR(int(os.getenv("NUMBER_OF_PR")),repackedDescr,id,boolenIsClosed, isMerged)
+    set_key(env_path,'NUMBER_OF_PR', str(int(os.getenv("NUMBER_OF_PR"))+1))
     
 
 

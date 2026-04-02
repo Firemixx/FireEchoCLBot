@@ -5,6 +5,7 @@ import asyncio
 from dotenv import load_dotenv
 import time
 import logging
+import github
 from Logic import logging as log
 from Logic.Parsing import ParsingSystem as pars
 from Logic.DB import parsDB as db
@@ -34,18 +35,29 @@ async def on_ready():
 async def parsPR():
     log.config_log(level=logging.INFO)
     logger.info("Parsing PR's")
-    await pars.parsPR(bot)
+    try:
+        await pars.parsPR(bot)
+    except github.UnknownObjectException:
+        logger.error('PR is not created!')
+    except Exception as e:
+        logger.error(f'PR parsing have error:{e}')
 
 @tasks.loop(minutes=40)
 async def parsComm():
     log.config_log(level=logging.INFO)
     logger.info('Start parsing comments')
-    await pars.parsComments(bot)
+    try:
+        await pars.parsComments(bot)
+    except Exception as e:
+        logger.error(f'PR parsing have error:{e}')
 
 @tasks.loop(seconds=30)
 async def checkUpMerged():
     log.config_log(level=logging.INFO)
     logger.info("Checking up merger pr's")
-    await checkUpMerged(bot)
+    try:
+        await checkUpMerged(bot)
+    except Exception as e:
+        logger.error(f'PR parsing have error:{e}')
 
 bot.run(token)
