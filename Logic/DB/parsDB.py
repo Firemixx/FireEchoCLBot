@@ -22,7 +22,7 @@ class Base(AsyncAttrs,DeclarativeBase):
 class PR(Base):
     __tablename__= 'PRs'
     id:Mapped[int] = mapped_column(primary_key=True)
-    threadId:Mapped[int] = mapped_column(primary_key=True)
+    threadId:Mapped[int] = mapped_column(nullable=False)
     info:Mapped[dict[str, str]] = mapped_column()
     isClosed:Mapped[bool]
     isMerged:Mapped[bool]

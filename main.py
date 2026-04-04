@@ -29,6 +29,7 @@ async def on_ready():
     await db.init_db()
     parsPR.start()
     parsComm.start()
+    checkUpMerged.start()
 
 
 @tasks.loop(seconds=30)
@@ -56,7 +57,7 @@ async def checkUpMerged():
     log.config_log(level=logging.INFO)
     logger.info("Checking up merger pr's")
     try:
-        await checkUpMerged(bot)
+        await pars.checkUpMerged(bot)
     except Exception as e:
         logger.error(f'PR parsing have error:{e}')
 
