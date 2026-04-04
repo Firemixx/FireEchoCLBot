@@ -57,7 +57,7 @@ async def addComment(id:int):
         if comm:
             return
         else:
-            new_comm=PR(id=id)
+            new_comm=Comment(id=id)
             s.add(new_comm)
             await s.commit()
             await s.refresh(new_comm)
@@ -102,7 +102,7 @@ async def findNotMerged()->list:
         
 async def makeMerged(id:int):
     async with async_session() as s:
-        pr= await s.scalar(update(PR).where(PR.id==id).values(isMerged=True))
+        pr= await s.execute(update(PR).where(PR.id==id).values(isMerged=True))
         await s.commit()
         logger.info(f"PR with ID:{id} made merged!")
 
@@ -110,4 +110,4 @@ async def getBody(id:int):
     async with async_session() as s:
         pr= await s.scalar(select(PR).where(PR.id==id))
         logger.info(f"Collected body of PR with ID:{id}")
-        return pr.PR.info
+        return pr.info
