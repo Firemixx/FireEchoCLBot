@@ -21,7 +21,11 @@ There are all information how to fast start the bot, aboute bot, feature plans t
 ```CHANNEL_DEV_ID```=''(ID of channel in Discord for developer's changelog(contain targeted to developer information aboute Pull Request)) \
 ```CHANNEL_CL_ID```=''(ID of channel in Discord for public viewers) \
 ```GUILD_ID```='' (ID of guild where will sending CL)\
-(all in '' must be string)
+(all in '' must be string) \
+```EMAIL_SUBJECT```=''(Topic of your latter) \
+```EMAIL_OF_BOT``` = ''(Email of bot on which will be password of app) \ 
+```EMAIL_OF_RECIEVER``` = '' (Your, for example, email or email of person, that will recieve error logs)
+```EMAIL_PASSWORD``` = (Password that can be created on https://myaccount.google.com/apppasswords)
 
 9. Double click on ```run.bat``` (need to be installed from your side python 3.14.3 or younger)
 
@@ -35,6 +39,7 @@ Pluses:
 - Have filters for repacking  text in json format
 - Have nice design
 - Can send to developer's changelog comments in thread under PR's changelog
+- Can from 04.04.26 send emails to developer with error logs
 
 ## Future of bot
 In future, I plan to add:

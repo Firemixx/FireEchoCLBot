@@ -6,9 +6,12 @@ from Logic import logging as log
 from Logic.DB import parsDB as db
 from pathlib import Path
 from dotenv import load_dotenv, set_key
+import smtplib
+from email.message import EmailMessage
 
 logger=logging.getLogger(__name__)
 env_path = Path(__file__).resolve().parents[2] / "Storage" / ".env"
+logs_path = Path(__file__).resolve().parents[2] / "Storage" / "logs.txt"
 
 async def createEmded(name:str, author:str, status:str, aboute:str, why:str, changelog:str,URL:str, bot: discord.Client)->int:
     log.config_log(level=logging.INFO)
@@ -74,3 +77,21 @@ async def sendToPublicChangelog(changelog:str, bot: discord.Client):
                 )
                 await thread.send("ECHO Servant создал успешно ветку! Приятного обсуждения!")
                 logger.info('Thread created')
+
+async def sendEmail():
+    load_dotenv(env_path)
+    with open(logs_path) as file:
+        msg=EmailMessage()
+        msg.set_content(file.read())
+    msg['Subject'] = os.getenv("EMAIL_SUBJECT")
+    msg['From'] = os.getenv("EMAIL_OF_BOT")
+    msg['To'] = os.getenv("EMAIL_OF_RECIEVER")
+    with smtplib.SMTP("smtp.gmail.com", 587) as s:
+        s.starttls()
+        s.login(
+            os.getenv("EMAIL_OF_BOT"),
+            os.getenv("EMAIL_PASSWORD")
+        )
+        s.send_message(msg)
+    with open(logs_path, 'w') as file:
+        pass

@@ -9,6 +9,7 @@ import github
 from Logic import logging as log
 from Logic.Parsing import ParsingSystem as pars
 from Logic.DB import parsDB as db
+from Logic.DS import MessageMenager as msg
 try:
     asyncio.get_event_loop()
 except RuntimeError:
@@ -39,9 +40,11 @@ async def parsPR():
     try:
         await pars.parsPR(bot)
     except github.UnknownObjectException:
-        logger.error('PR is not created!')
+        logger.warning('PR is not created!')
     except Exception as e:
         logger.error(f'PR parsing have error:{e}')
+        await msg.sendEmail()
+        
 
 @tasks.loop(minutes=40)
 async def parsComm():
@@ -51,6 +54,7 @@ async def parsComm():
         await pars.parsComments(bot)
     except Exception as e:
         logger.error(f'PR parsing have error:{e}')
+        await msg.sendEmail()
 
 @tasks.loop(seconds=30)
 async def checkUpMerged():
@@ -60,5 +64,6 @@ async def checkUpMerged():
         await pars.checkUpMerged(bot)
     except Exception as e:
         logger.error(f'PR parsing have error:{e}')
+        await msg.sendEmail()
 
 bot.run(token)

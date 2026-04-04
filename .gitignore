@@ -2,3 +2,8 @@ Storage/.env
 Storage/comments.db
 Storage/pullrequests.db
 Storage/db.sqlite3
+Storage/logs.txt
+Logic/Parsing/__pycache__/ParsingSystem.cpython-314.pyc
+Logic/DS/__pycache__/MessageMenager.cpython-314.pyc
+Logic/__pycache__/logging.cpython-314.pyc
+Logic/DB/__pycache__/parsDB.cpython-314.pyc
