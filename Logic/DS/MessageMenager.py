@@ -78,7 +78,7 @@ async def sendToPublicChangelog(changelog:str,title:str, bot: discord.Client):
                 if(os.getenv("PUBLIC_CL_DS_ROLE")==''):
                     await thread.send("ECHO Servant создал успешно ветку! Приятного обсуждения!")
                 else:
-                    await thread.send(f"Обновление с названием '{title}' было опубликовано. @{os.getenv("PUBLIC_CL_DS_ROLE")} приглашаются к ознакомлению с обновлением. Так же сообщаю что ветка успешно создана:3")
+                    await thread.send(f"Обновление с названием '{title}' было опубликовано. <@&{os.getenv("PUBLIC_CL_DS_ROLE")}> приглашаются к ознакомлению с обновлением. Так же сообщаю что ветка успешно создана:3")
                 logger.info('Thread created')
 
 async def sendEmail():
