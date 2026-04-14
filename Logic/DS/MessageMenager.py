@@ -56,7 +56,7 @@ async def sendToBranch(author:str,commentContent:str,idThread:int,time ,bot: dis
             logger.info("comment sended like embed")
 
 
-async def sendToPublicChangelog(changelog:str, bot: discord.Client):
+async def sendToPublicChangelog(changelog:str,title:str, bot: discord.Client):
     log.config_log(level=logging.INFO)
     embed= discord.Embed(title=f"Сервер получил новое обновление!\n\nЧенджлог: \n {changelog}", color=0x008200)
     load_dotenv(env_path)
@@ -75,7 +75,10 @@ async def sendToPublicChangelog(changelog:str, bot: discord.Client):
                 name="Обсуждение обновления",
                 auto_archive_duration=60
                 )
-                await thread.send("ECHO Servant создал успешно ветку! Приятного обсуждения!")
+                if(os.getenv("PUBLIC_CL_DS_ROLE")==''):
+                    await thread.send("ECHO Servant создал успешно ветку! Приятного обсуждения!")
+                else:
+                    await thread.send(f"Обновление с названием '{title}' было опубликовано. @{os.getenv("PUBLIC_CL_DS_ROLE")} приглашаются к ознакомлению с обновлением. Так же сообщаю что ветка успешно создана:3")
                 logger.info('Thread created')
 
 async def sendEmail():

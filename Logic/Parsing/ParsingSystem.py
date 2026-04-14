@@ -114,11 +114,12 @@ async def checkUpMerged(bot:discord.Client):
         pullrequest=repo.get_pull(id)  
         isMerged=pullrequest.merged
         if(isMerged):
+            title=pullrequest.title
             await db.makeMerged(id)
             body=await db.getBody(id)
 
             changelog=body['Чейнджлог']
-            await ds.sendToPublicChangelog(changelog,bot)
+            await ds.sendToPublicChangelog(changelog,title,bot)
             logger.info(f"Sended to public CL with ID{id}")
         else:
             continue
