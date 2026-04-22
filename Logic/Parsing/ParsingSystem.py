@@ -8,6 +8,7 @@ import re
 from github import Github
 from dotenv import load_dotenv, set_key
 from Logic.DS import MessageMenager as ds
+from Logic.Localization import LocalizationManager as loc
 from Logic import logging as log
 from pathlib import Path
 from Logic.DB import parsDB as db
@@ -45,14 +46,17 @@ async def parsPR(bot: discord.Client):
         case 'open':
             boolenIsClosed = False
     print(repackedDescr)
-    if "Чейнджлог" not in repackedDescr:
-        repackedDescr.update({'Чейнджлог':'Чейнджлог отсутствует'})
+    changelog_point = os.getenv("CHANGELOG_POINT")
+    aboute_point = os.getenv("ABOUTE_POINT")
+    why_point = os.getenv("WHY_POINT")
+    if changelog_point not in repackedDescr:
+        repackedDescr.update({changelog_point: await loc.get_loc("changelog_missing")})
         logger.warning("Changelog is missing")
-    if "Описание PR" not in repackedDescr:
-        repackedDescr.update({'Описание PR':'Описание отсутствует'})
+    if aboute_point not in repackedDescr:
+        repackedDescr.update({aboute_point: await loc.get_loc("descr_missing")})
         logger.warning("Description is missing")
-    if "Почему / Баланс" not in repackedDescr:
-        repackedDescr.update({'Почему / Баланс':'Описание причины добавления отсутствует'})
+    if why_point not in repackedDescr:
+        repackedDescr.update({why_point:await loc.get_loc("why_missing")})
         logger.warning("Why/Balance is missing")
     url=f'https://github.com/{os.getenv("REPO_PATH")}/pull/{int(os.getenv("NUMBER_OF_PR"))}'
     id = await ds.createEmded(title,author,statusToDS,repackedDescr['Описание PR'],repackedDescr['Почему / Баланс'], repackedDescr['Чейнджлог'],url, bot )

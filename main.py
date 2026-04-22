@@ -10,6 +10,7 @@ from Logic import logging as log
 from Logic.Parsing import ParsingSystem as pars
 from Logic.DB import parsDB as db
 from Logic.DS import MessageMenager as msg
+from Logic.Localization import LocalizationManager as loc
 try:
     asyncio.get_event_loop()
 except RuntimeError:
@@ -28,6 +29,7 @@ async def on_ready():
     log.config_log(level=logging.INFO)
     logger.info(f"We have logged in as {bot.user}")
     await db.init_db()
+    await loc.init()
     parsPR.start()
     parsComm.start()
     checkUpMerged.start()

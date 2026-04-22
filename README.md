@@ -27,6 +27,16 @@ There are all information how to fast start the bot, aboute bot, feature plans t
 ```EMAIL_OF_RECIEVER``` = '' (Your, for example, email or email of person, that will recieve error logs)
 ```EMAIL_PASSWORD``` = (Password that can be created on https://myaccount.google.com/apppasswords)
 
+    ```LOCALIZATION``` = (language setting for discord messages. Evailable languages: English(en in .env),Russian(ru in .env), Ukranian(uk in .env)) \
+
+    Settings for point part of PR below \
+    ```CHANGELOG_POINT``` '' \
+
+    ```ABOUTE_POINT``` = ''
+
+    ```WHY_POINT``` = ''
+
+
 9. Double click on ```run.bat``` (need to be installed from your side python 3.14.3 or younger)
 
 10. All done
@@ -40,12 +50,14 @@ Pluses:
 - Have nice design
 - Can send to developer's changelog comments in thread under PR's changelog
 - Can from 04.04.26 send emails to developer with error logs
+- Can from 22.04.26 send messages on three languages on your choice (Also you can add your language)
+- You can from 22.04.26 config points to devide text
 
 ## Future of bot
 In future, I plan to add:
-- Make possible to customise all messages from bot to discord by adding language packs
+- (Added!)Make possible to customise all messages from bot to discord by adding language packs
 - Make possible to working with Pull Request from Discord by leads of project for example
-- Make possible to add tags from which will collecting all information in body of PR
+- (Added!) Make possible to add tags from which will collecting all information in body of PR
 
 
 
