@@ -15,6 +15,7 @@ There are all information how to fast start the bot, aboute bot, feature plans t
 7. Rename file to ```.env```
 8. Fill all settings:\
 ```TOKEN``` = (Token from discord developer portal) \
+```BOT_NAME``` = ''(Name of bot in changelog)
 ```GIT_TOKEN``` = (Your token from github for work with github.api)  
 ```REPO_PATH``` = (Your path to repository, for example: ```ExampleOrganisation/ExampleRepo```) \
 ```NUMBER_OF_PR```=''(Number of PR that processing now) \
